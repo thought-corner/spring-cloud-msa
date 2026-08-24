@@ -1,0 +1,3 @@
+token:
+  secret: local-development-only-jwt-signing-key-do-not-use-in-production-0123456789
+  expiration-time: 24h
