@@ -76,6 +76,8 @@ user-service 는 JWT 서명 키를 config-service 에서 받으므로, config-se
 curl -X POST http://127.0.0.1:60000/users -H 'Content-Type: application/json' -d '{"email":"tester@example.com","name":"Tester","pwd":"password123"}'
 ```
 
+로그인하면 응답의 `token` 헤더로 JWT 가 내려온다. 사용자 조회는 이 토큰이 필요하다.
+
 ```bash
 curl -i -X POST http://127.0.0.1:60000/login -H 'Content-Type: application/json' -d '{"email":"tester@example.com","password":"password123"}'
 ```
@@ -85,7 +87,7 @@ curl -X POST http://127.0.0.1:10000/orders/{userId} -H 'Content-Type: applicatio
 ```
 
 ```bash
-curl http://127.0.0.1:60000/users/{userId}
+curl http://127.0.0.1:60000/users/{userId} -H 'Authorization: Bearer {token}'
 ```
 
 각 서비스의 상태는 actuator 로 확인한다.
@@ -121,7 +123,11 @@ curl http://127.0.0.1:60000/actuator/health
   잘못된 값의 생성 자체를 막는다. setter 가 없으므로 총액이 단가×수량과 어긋난 상태를 만들 방법이 없다.
   영속 모델(`OrderJpaEntity`)은 도메인 모델과 분리되어 있고, `OrderRepository` 포트를
   `OrderRepositoryAdapter` 가 구현한다. 생성 시각은 주입된 `Clock` 으로 도메인이 기록한다.
-  리치 도메인 객체에는 ModelMapper 를 쓸 수 없어 명시적 매핑으로 바꿨고, 해당 의존성을 제거했다.
+- **product-service / user-service 패키지 구조**: 정석 레이어드(controller/service/repository/entity)로
+  재구성했다. 엔티티는 서비스 계층을 넘지 않으며, 서비스는 service DTO(`~Result`)를 반환하고
+  컨트롤러가 자기 DTO(`~Response`)로 변환한다. Feign 응답 모델은 `client/dto` 소속이다.
+- **ModelMapper 제거**: 리플렉션 매핑은 필드가 어긋나도 컴파일 타임에 잡히지 않아
+  전 서비스에서 정적 팩토리 기반 명시적 매핑으로 대체하고 의존성을 제거했다.
 - **금액 타입**: `int` 는 약 21.5억이 상한이라 고가 주문을 담지 못한다. `Money` 를 `long` 으로 바꾸고
   DB 컬럼도 `bigint` 로 넓혔다. 곱셈은 `Math.multiplyExact` 로 오버플로를 잡아 잘못된 입력으로 거부한다.
 - **오류 계약**: 오류는 `ErrorCode` 인터페이스(`code`/`message`/`httpStatus`)와 이를 구현한
@@ -139,8 +145,12 @@ curl http://127.0.0.1:60000/actuator/health
   | `ORDER-4003` | 총액이 표현 범위 초과 |
   | `ORDER-4004` | 식별자가 비어 있음 |
   | `ORDER-4005` | 단가가 0 이하 |
-- **설정 외부화**: 서킷 브레이커 임계값, 허용 IP 대역, Eureka·MySQL 주소를 설정으로 옮겼다.
+- **설정 외부화**: 서킷 브레이커 임계값, Eureka·MySQL 주소를 설정으로 옮겼다.
   JWT 설정은 `TokenProperties` 로 바인딩하며 512비트 미만 키는 기동 시 거부한다.
+- **JWT 검증을 서비스가 직접 수행**: 원본은 게이트웨이가 토큰을 검증하고 서비스는
+  허용 IP 목록으로 인증을 우회했다. 게이트웨이가 없는 이 구성에서 IP 우회는
+  인증을 무력화할 뿐이라 제거했고, `JwtAuthenticationFilter` 가 Bearer 토큰을
+  검증해 보호 엔드포인트를 지킨다. 토큰이 없거나 위조되면 403 이다.
 
 ## 알려진 제약
 

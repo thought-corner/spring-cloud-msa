@@ -1,0 +1,16 @@
+spring:
+  config:
+    import: ""
+  cloud:
+    config:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+token:
+  secret: test-only-jwt-signing-key-that-is-long-enough-for-hs512-0123456789abcd
+  expiration-time: 24h
+
+

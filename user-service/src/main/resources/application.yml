@@ -1,0 +1,55 @@
+server:
+  port: 60000
+
+spring:
+  application:
+    name: user-service
+  config:
+    import: "optional:configserver:${CONFIG_SERVICE_URI:http://127.0.0.1:8888}"
+  cloud:
+    config:
+      fail-fast: true
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/userdb?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USERNAME:msa}
+    password: ${MYSQL_PASSWORD:msa1234}
+  jpa:
+    properties:
+      hibernate:
+        hbm2ddl:
+          halt_on_error: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVICE_URL:http://127.0.0.1:8761/eureka}
+
+resilience:
+  circuit-breaker:
+    failure-rate-threshold: 50
+    wait-duration-in-open-state: 10s
+    sliding-window-size: 10
+    timeout: 4s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, refresh
+  tracing:
+    sampling:
+      probability: 1.0
+
+logging:
+  level:
+    com.study.userservice: DEBUG
+  pattern:
+    correlation: '[${spring.application.name:},%X{traceId:-},%X{spanId:-}] '
