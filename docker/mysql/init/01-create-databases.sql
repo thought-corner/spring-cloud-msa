@@ -1,0 +1,15 @@
+CREATE
+DATABASE IF NOT EXISTS userdb    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE
+DATABASE IF NOT EXISTS orderdb   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE
+DATABASE IF NOT EXISTS productdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+GRANT ALL PRIVILEGES ON userdb.*    TO
+'msa'@'%';
+GRANT ALL PRIVILEGES ON orderdb.*   TO
+'msa'@'%';
+GRANT ALL PRIVILEGES ON productdb.* TO
+'msa'@'%';
+FLUSH
+PRIVILEGES;
