@@ -1,0 +1,42 @@
+server:
+  port: 20000
+
+spring:
+  application:
+    name: product-service
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/productdb?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USERNAME:msa}
+    password: ${MYSQL_PASSWORD:msa1234}
+  jpa:
+    properties:
+      hibernate:
+        hbm2ddl:
+          halt_on_error: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVICE_URL:http://127.0.0.1:8761/eureka}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+
+logging:
+  level:
+    com.study.productservice: DEBUG
