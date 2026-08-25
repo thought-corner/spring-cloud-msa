@@ -15,7 +15,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Component
 public class TokenKeyHolder {
 
-	private static final String BINDING_KEY = "token.public-keys";
+	private static final String BINDING_PREFIX = "token";
+	private static final String BINDING_KEY = BINDING_PREFIX + ".public-keys";
 
 	private final Environment environment;
 	private final AtomicReference<TokenKeys> current = new AtomicReference<>();
@@ -31,7 +32,7 @@ public class TokenKeyHolder {
 
 	@EventListener
 	public void onEnvironmentChange(EnvironmentChangeEvent event) {
-		if (event.getKeys().stream().noneMatch(key -> key.startsWith("token."))) {
+		if (event.getKeys().stream().noneMatch(key -> key.startsWith(BINDING_PREFIX + "."))) {
 			return;
 		}
 		try {

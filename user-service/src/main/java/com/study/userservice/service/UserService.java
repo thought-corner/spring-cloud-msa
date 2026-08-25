@@ -48,9 +48,9 @@ public class UserService {
         return UserResult.from(user);
     }
 
-    public Optional<UserDetailResult> getUserByUserId(String userId) {
+    public Optional<UserDetailResult> getUserByUserId(String userId, String authenticatedUser) {
         return userRepository.findByUserId(userId)
-                .map(user -> UserDetailResult.of(user, getOrders(userId)));
+                .map(user -> UserDetailResult.of(user, getOrders(authenticatedUser, userId)));
     }
 
     public List<UserResult> getUsers() {
@@ -59,10 +59,10 @@ public class UserService {
                 .toList();
     }
 
-    private List<OrderResponse> getOrders(String userId) {
+    private List<OrderResponse> getOrders(String authenticatedUser, String userId) {
         CircuitBreaker circuitBreaker = circuitBreakerFactory.create(ORDER_SERVICE_CIRCUIT_BREAKER);
         return circuitBreaker.run(
-                () -> orderServiceClient.getOrders(userId),
+                () -> orderServiceClient.getOrders(authenticatedUser, userId),
                 throwable -> {
                     log.warn("Failed to load orders of user {}, falling back to an empty list: {}",
                             userId, throwable.getMessage());

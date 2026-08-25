@@ -8,6 +8,8 @@ import com.study.userservice.controller.dto.UserCreateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,8 +30,8 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserCreateRequest user) {
-        UserCreateCommand command = new UserCreateCommand(user.email(), user.name(), user.pwd());
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserCreateRequest request) {
+        UserCreateCommand command = new UserCreateCommand(request.email(), request.name(), request.pwd());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(UserResponse.from(userService.createUser(command)));
@@ -45,8 +47,10 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserDetailResponse> getUser(@PathVariable("userId") String userId) {
-        return userService.getUserByUserId(userId)
+    @PreAuthorize("#userId == authentication.name")
+    public ResponseEntity<UserDetailResponse> getUser(@AuthenticationPrincipal String authenticatedUser,
+                                                      @PathVariable("userId") String userId) {
+        return userService.getUserByUserId(userId, authenticatedUser)
                 .map(result -> ResponseEntity.ok(UserDetailResponse.from(result)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

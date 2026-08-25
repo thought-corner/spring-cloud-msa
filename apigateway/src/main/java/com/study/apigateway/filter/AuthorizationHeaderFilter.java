@@ -1,10 +1,6 @@
 package com.study.apigateway.filter;
 
-import com.study.apigateway.security.TokenKeyHolder;
-import com.study.apigateway.security.TokenKeys;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
+import com.study.apigateway.security.TokenVerifier;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
@@ -14,18 +10,18 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.security.Key;
-
 @Component
 public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<AuthorizationHeaderFilter.Config> {
 
     private static final String BEARER_PREFIX = "Bearer ";
 
-    private final TokenKeyHolder tokenKeyHolder;
+    public static final String AUTHENTICATED_USER_HEADER = "X-Authenticated-User";
 
-    public AuthorizationHeaderFilter(TokenKeyHolder tokenKeyHolder) {
+    private final TokenVerifier tokenVerifier;
+
+    public AuthorizationHeaderFilter(TokenVerifier tokenVerifier) {
         super(Config.class);
-        this.tokenKeyHolder = tokenKeyHolder;
+        this.tokenVerifier = tokenVerifier;
     }
 
     public static class Config {
@@ -39,41 +35,22 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
             if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
                 return onError(exchange);
             }
-            if (!isJwtValid(authorizationHeader.substring(BEARER_PREFIX.length()))) {
-                return onError(exchange);
-            }
 
-            return chain.filter(exchange);
+            return tokenVerifier.verify(authorizationHeader.substring(BEARER_PREFIX.length()))
+                    .map(subject -> chain.filter(withAuthenticatedUser(exchange, subject)))
+                    .orElseGet(() -> onError(exchange));
         };
     }
 
-    private boolean isJwtValid(String jwt) {
-        TokenKeys keys = tokenKeyHolder.current();
-        try {
-            String subject = Jwts.parser()
-                    .keyLocator(header -> resolveKey(keys, header))
-                    .build()
-                    .parseSignedClaims(jwt)
-                    .getPayload()
-                    .getSubject();
-
-            return subject != null && !subject.isBlank();
-        } catch (JwtException | IllegalArgumentException ex) {
-            return false;
-        }
-    }
-
-    private Key resolveKey(TokenKeys keys, io.jsonwebtoken.Header header) {
-        if (header instanceof JwsHeader jwsHeader) {
-            return keys.publicKeys().get(jwsHeader.getKeyId());
-        }
-        return null;
+    private ServerWebExchange withAuthenticatedUser(ServerWebExchange exchange, String subject) {
+        return exchange.mutate()
+                .request(request -> request.headers(headers -> headers.set(AUTHENTICATED_USER_HEADER, subject)))
+                .build();
     }
 
     private Mono<Void> onError(ServerWebExchange exchange) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
-
         return response.setComplete();
     }
 }
