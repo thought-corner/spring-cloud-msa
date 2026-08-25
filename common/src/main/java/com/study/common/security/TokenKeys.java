@@ -1,4 +1,4 @@
-package com.study.orderservice.security;
+package com.study.common.security;
 
 import java.security.KeyFactory;
 import java.security.PublicKey;
@@ -8,8 +8,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 토큰 검증에 쓰는 공개키 스냅샷(불변). order-service 는 발급하지 않고 검증만 하므로
- * 개인키 없이 kid→공개키 매핑만 보유한다. jjwt 의존 없이 순수 java.security 타입만 다룬다.
+ * 토큰 검증에 쓰는 공개키 스냅샷(불변). 검증자(게이트웨이·리소스 서버)가 공유한다.
+ * 발급은 하지 않으므로 개인키 없이 kid→공개키 매핑만 보유하며, jjwt 의존 없이
+ * 순수 java.security 타입만 다룬다.
  */
 public record TokenKeys(Map<String, PublicKey> publicKeys) {
 

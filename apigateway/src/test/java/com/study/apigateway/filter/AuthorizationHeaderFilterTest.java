@@ -1,7 +1,7 @@
 package com.study.apigateway.filter;
 
-import com.study.apigateway.security.TokenKeyHolder;
-import com.study.apigateway.security.TokenVerifier;
+import com.study.common.security.TokenKeyHolder;
+import com.study.common.security.TokenVerifier;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;

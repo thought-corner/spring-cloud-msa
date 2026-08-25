@@ -1,6 +1,6 @@
 package com.study.apigateway.filter;
 
-import com.study.apigateway.security.TokenVerifier;
+import com.study.common.security.TokenVerifier;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;

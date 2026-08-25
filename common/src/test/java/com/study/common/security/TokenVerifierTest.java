@@ -1,4 +1,4 @@
-package com.study.apigateway.security;
+package com.study.common.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

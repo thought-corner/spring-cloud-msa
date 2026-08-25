@@ -3,7 +3,7 @@ package com.study.orderservice.presentation;
 import com.study.orderservice.application.OrderResult;
 import com.study.orderservice.application.OrderService;
 import com.study.orderservice.application.PlaceOrderCommand;
-import com.study.orderservice.security.TokenVerifier;
+import com.study.common.security.TokenVerifier;
 import com.study.orderservice.security.WebSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

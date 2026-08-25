@@ -1,10 +1,9 @@
-package com.study.orderservice.security;
+package com.study.common.security;
 
 import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Optional;
@@ -14,7 +13,6 @@ import java.util.Optional;
  * 키 스냅샷({@link TokenKeys})은 순수 java.security 타입만 다룬다.
  * 검증에 성공하면 subject 를, 실패하면 빈 값을 돌려준다(예외를 흘리지 않는다).
  */
-@Component
 public class TokenVerifier {
 
     private final TokenKeyHolder tokenKeyHolder;

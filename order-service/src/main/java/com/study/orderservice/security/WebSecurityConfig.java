@@ -1,5 +1,6 @@
 package com.study.orderservice.security;
 
+import com.study.common.security.TokenVerifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
