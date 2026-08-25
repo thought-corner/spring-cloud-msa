@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public record OrderResult(
         String orderId,
+        String userId,
         String productId,
         int quantity,
         long unitPrice,
@@ -15,6 +16,7 @@ public record OrderResult(
     public static OrderResult from(Order order) {
         return new OrderResult(
                 order.orderId().value(),
+                order.userId().value(),
                 order.productId().value(),
                 order.quantity().value(),
                 order.unitPrice().amount(),

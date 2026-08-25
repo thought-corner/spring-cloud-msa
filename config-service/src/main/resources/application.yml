@@ -4,12 +4,26 @@ server:
 config:
   repository:
     path: ${user.dir}/config-repo
+  encrypt:
+    keystore-path: ${user.dir}/keystore/config-encrypt-dev.jks
+
+encrypt:
+  key-store:
+    location: file:${config.encrypt.keystore-path}
+    password: ${CONFIG_ENCRYPT_KEYSTORE_PASSWORD:config-encrypt-pass}
+    alias: ${CONFIG_ENCRYPT_KEY_ALIAS:config-encrypt-key}
 
 spring:
   application:
     name: config-service
+  security:
+    user:
+      name: ${CONFIG_SERVICE_USERNAME:config}
+      password: ${CONFIG_SERVICE_PASSWORD:config1234}
   profiles:
     active: native
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
   cloud:
     config:
       server:
@@ -20,4 +34,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, refresh
+        include: health, info, busrefresh

@@ -6,12 +6,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+@SpringBootTest(properties = {"spring.config.import=", "spring.cloud.config.enabled=false"})
 @ActiveProfiles("test")
 @Import(MySqlTestContainerConfig.class)
 class OrderServiceApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 }

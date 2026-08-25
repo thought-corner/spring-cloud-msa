@@ -39,11 +39,20 @@ class UserControllerTest {
 	}
 
 	@Test
-	void 유효한_토큰으로_존재하지_않는_사용자를_조회하면_404를_반환한다() throws Exception {
-		String token = jwtTokenProvider.createToken("tester");
+	void 본인_식별자로_조회하지만_사용자가_없으면_404를_반환한다() throws Exception {
+		String token = jwtTokenProvider.createToken("no-such-user");
 
 		mockMvc.perform(get("/users/{userId}", "no-such-user")
 						.header("Authorization", "Bearer " + token))
 				.andExpect(status().isNotFound());
+	}
+
+	@Test
+	void 타인의_식별자를_조회하면_403으로_거부된다() throws Exception {
+		String token = jwtTokenProvider.createToken("tester");
+
+		mockMvc.perform(get("/users/{userId}", "someone-else")
+						.header("Authorization", "Bearer " + token))
+				.andExpect(status().isForbidden());
 	}
 }

@@ -9,6 +9,8 @@ spring:
   cloud:
     config:
       fail-fast: true
+      username: ${CONFIG_SERVICE_USERNAME:config}
+      password: ${CONFIG_SERVICE_PASSWORD:config1234}
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/userdb?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Seoul
@@ -25,8 +27,11 @@ spring:
 
 eureka:
   instance:
-    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:127.0.0.1}
+    instance-id: ${spring.application.name}:${server.port}
   client:
+    refresh:
+      enable: false
     register-with-eureka: true
     fetch-registry: true
     service-url:
@@ -39,11 +44,14 @@ resilience:
     sliding-window-size: 10
     timeout: 4s
 
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics, refresh
+        include: health, info, metrics
   tracing:
     sampling:
       probability: 1.0

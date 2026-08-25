@@ -1,3 +1,5 @@
 token:
-  secret: local-development-only-jwt-signing-key-do-not-use-in-production-0123456789
+  active-kid: k2
+  public-keys:
+    k2: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzhtL/nTRaAt2+U+ePuB0LPEq6OkbssfVOzpFPk20cHjLcRZnkBb/YvZ1Bx3qmmxHtKYqOJQglILuHnLwKeUPIArpdwSjTeQ3Zh677Oi9FVo1KPXBwExWiaRiT3lvaa3PzueGL3KABco5LkQVkW5rAWpH5O0TZDN+/sT30f1cu79gNt2plPDnOPlx5HiMJV5wtppOBrV2I6GjmNzmLGHgreEXjnyo37ie0iMxPsdziiSE9kS2AUF/7s8mhGZnjgw5VzNHQv03zKBM8KR+EtCh5ifiazUUY/yUfZCqBrj5kBh4Moyoh4Fie9nG4G6f02UOtCUgtxZzyxdeFatcx6gxWwIDAQAB
   expiration-time: 24h

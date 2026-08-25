@@ -1,16 +1,18 @@
 package com.study.userservice.security;
 
-import com.study.userservice.config.properties.TokenProperties;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,53 +20,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JwtTokenProviderTest {
 
-    private static final String SECRET = "test-only-jwt-signing-key-that-is-long-enough-for-hs512-0123456789abcd";
     private static final Instant FIXED_NOW = Instant.parse("2026-01-01T00:00:00Z");
     private static final Duration EXPIRATION = Duration.ofHours(24);
-
-    private final SecretKey secretKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    private static final KeyPair KEY_PAIR = generateKeyPair();
+    private static final KeyPair OTHER_KEY_PAIR = generateKeyPair();
 
     @Test
     void 발급된_토큰의_subject는_사용자_식별자다() {
-        JwtTokenProvider provider = providerAt(FIXED_NOW);
-
-        String token = provider.createToken("user-1234");
-
-        assertThat(parse(token).getPayload().getSubject()).isEqualTo("user-1234");
-    }
-
-    @Test
-    void 발급된_토큰의_만료시각은_현재시각에_설정된_유효기간을_더한_값이다() {
-        JwtTokenProvider provider = providerAt(FIXED_NOW);
-
-        String token = provider.createToken("user-1234");
-
-        assertThat(parse(token).getPayload().getExpiration())
-                .isEqualTo(Date.from(FIXED_NOW.plus(EXPIRATION)));
-    }
-
-    @Test
-    void 유효기간이_지난_시점에_검증하면_만료로_판정된다() {
-        String token = providerAt(FIXED_NOW).createToken("user-1234");
-        Clock afterExpiry = Clock.fixed(FIXED_NOW.plus(EXPIRATION).plusSeconds(1), ZoneOffset.UTC);
-
-        assertThatThrownBy(() -> Jwts.parser()
-                .verifyWith(secretKey)
-                .clock(() -> Date.from(afterExpiry.instant()))
-                .build()
-                .parseSignedClaims(token))
-                .isInstanceOf(io.jsonwebtoken.ExpiredJwtException.class);
-    }
-
-    @Test
-    void 서명키가_512비트에_못_미치면_설정_바인딩_단계에서_거부된다() {
-        assertThatThrownBy(() -> new TokenProperties("too-short", EXPIRATION))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("token.secret");
-    }
-
-    @Test
-    void 발급한_토큰을_파싱하면_사용자_식별자를_돌려준다() {
         JwtTokenProvider provider = providerAt(FIXED_NOW);
 
         String token = provider.createToken("user-1234");
@@ -73,24 +35,80 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    void 만료된_토큰을_파싱하면_거부된다() {
+    void 발급된_토큰_헤더에는_활성_kid가_실린다() {
+        JwtTokenProvider provider = providerAt(FIXED_NOW);
+
+        String token = provider.createToken("user-1234");
+
+        var header = Jwts.parser()
+                .keyLocator(h -> KEY_PAIR.getPublic())
+                .clock(() -> Date.from(FIXED_NOW))
+                .build()
+                .parseSignedClaims(token)
+                .getHeader();
+        assertThat(header.getKeyId()).isEqualTo("k1");
+    }
+
+    @Test
+    void 유효기간이_지난_토큰은_만료로_거부된다() {
         String token = providerAt(FIXED_NOW).createToken("user-1234");
         JwtTokenProvider laterProvider = providerAt(FIXED_NOW.plus(EXPIRATION).plusSeconds(1));
 
         assertThatThrownBy(() -> laterProvider.parseUserId(token))
-                .isInstanceOf(io.jsonwebtoken.ExpiredJwtException.class);
+                .isInstanceOf(ExpiredJwtException.class);
+    }
+
+    @Test
+    void 모르는_kid의_토큰은_거부된다() {
+        JwtTokenProvider provider = providerAt(FIXED_NOW);
+        String unknownKidToken = Jwts.builder()
+                .header().keyId("no-such-kid").and()
+                .subject("user-1234")
+                .issuedAt(Date.from(FIXED_NOW))
+                .expiration(Date.from(FIXED_NOW.plus(EXPIRATION)))
+                .signWith(OTHER_KEY_PAIR.getPrivate(), Jwts.SIG.RS256)
+                .compact();
+
+        assertThatThrownBy(() -> provider.parseUserId(unknownKidToken))
+                .isInstanceOf(JwtException.class);
+    }
+
+    @Test
+    void 같은_kid라도_다른_키로_서명된_토큰은_거부된다() {
+        JwtTokenProvider provider = providerAt(FIXED_NOW);
+        String forged = Jwts.builder()
+                .header().keyId("k1").and()
+                .subject("user-1234")
+                .issuedAt(Date.from(FIXED_NOW))
+                .expiration(Date.from(FIXED_NOW.plus(EXPIRATION)))
+                .signWith(OTHER_KEY_PAIR.getPrivate(), Jwts.SIG.RS256)
+                .compact();
+
+        assertThatThrownBy(() -> provider.parseUserId(forged))
+                .isInstanceOf(JwtException.class);
     }
 
     private JwtTokenProvider providerAt(Instant now) {
-        return new JwtTokenProvider(new TokenProperties(SECRET, EXPIRATION),
-                Clock.fixed(now, ZoneOffset.UTC));
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("token.active-kid", "k1");
+        environment.setProperty("token.public-keys.k1", encode(KEY_PAIR.getPublic().getEncoded()));
+        environment.setProperty("token.private-keys.k1", encode(KEY_PAIR.getPrivate().getEncoded()));
+        environment.setProperty("token.expiration-time", "24h");
+
+        return new JwtTokenProvider(new TokenKeyHolder(environment), Clock.fixed(now, ZoneOffset.UTC));
     }
 
-    private io.jsonwebtoken.Jws<io.jsonwebtoken.Claims> parse(String token) {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .clock(() -> Date.from(FIXED_NOW))
-                .build()
-                .parseSignedClaims(token);
+    private static String encode(byte[] der) {
+        return Base64.getEncoder().encodeToString(der);
+    }
+
+    private static KeyPair generateKeyPair() {
+        try {
+            KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+            generator.initialize(2048);
+            return generator.generateKeyPair();
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 }
