@@ -1,3 +1,14 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+    bus:
+      enabled: false
+
 eureka:
   client:
     enabled: false
+
+token:
+  public-keys:
+    test: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs11WgEb9TZJw4U4ifmYW4HHUBM/mKjHTZ7+G5+EJZFg5ghqo/Vp1sFh5zezZCl993tacdl2eyhQuVr8pesCRynptOrXB6eFMAzPNwOX/NmUQhQw7AuvAqmzo5ZrtXlsq0B15P5J+X8gmVX/T6BKM+XV6Nzu9UbnZc5aBTT5RbKh0uVrL1J/cSUC0o2jXjWLPhBWpDPgMjItWxlKF0iOMhsc2p18ygT7akRFnLezg23rpZRy68C19f6f6COmSbAHMfQJLnZIYunY7XgqdemNbxEcypmPs0nZOS7m5TZJoqkNBik9L9ytSMWcu+k3RDKbow7EPSgRkkBtZ0d+sHlxTKQIDAQAB

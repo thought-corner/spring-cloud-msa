@@ -48,9 +48,9 @@ public class UserService {
         return UserResult.from(user);
     }
 
-    public Optional<UserDetailResult> getUserByUserId(String userId, String authenticatedUser) {
+    public Optional<UserDetailResult> getUserByUserId(String userId, String authorization) {
         return userRepository.findByUserId(userId)
-                .map(user -> UserDetailResult.of(user, getOrders(authenticatedUser, userId)));
+                .map(user -> UserDetailResult.of(user, getOrders(authorization, userId)));
     }
 
     public List<UserResult> getUsers() {
@@ -59,10 +59,12 @@ public class UserService {
                 .toList();
     }
 
-    private List<OrderResponse> getOrders(String authenticatedUser, String userId) {
+    // 서킷 브레이커가 별도 스레드에서 실행하므로, 릴레이할 JWT는 요청 스레드에서 값으로 받아
+    // 클로저로 넘긴다(ThreadLocal 인 SecurityContext 는 그 스레드에 전파되지 않는다).
+    private List<OrderResponse> getOrders(String authorization, String userId) {
         CircuitBreaker circuitBreaker = circuitBreakerFactory.create(ORDER_SERVICE_CIRCUIT_BREAKER);
         return circuitBreaker.run(
-                () -> orderServiceClient.getOrders(authenticatedUser, userId),
+                () -> orderServiceClient.getOrders(authorization, userId),
                 throwable -> {
                     log.warn("Failed to load orders of user {}, falling back to an empty list: {}",
                             userId, throwable.getMessage());

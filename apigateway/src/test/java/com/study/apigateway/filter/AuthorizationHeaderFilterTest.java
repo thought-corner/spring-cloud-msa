@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
@@ -22,9 +21,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
-import static com.study.apigateway.filter.AuthorizationHeaderFilter.AUTHENTICATED_USER_HEADER;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AuthorizationHeaderFilterTest {
@@ -35,10 +32,8 @@ class AuthorizationHeaderFilterTest {
 
     private final GatewayFilter filter = buildFilter();
     private final AtomicBoolean chained = new AtomicBoolean();
-    private final AtomicReference<ServerWebExchange> forwarded = new AtomicReference<>();
     private final GatewayFilterChain chain = exchange -> {
         chained.set(true);
-        forwarded.set(exchange);
         return Mono.empty();
     };
 
@@ -111,45 +106,6 @@ class AuthorizationHeaderFilterTest {
 
         assertThat(chained).isTrue();
         assertThat(exchange.getResponse().getStatusCode()).isNotEqualTo(HttpStatus.UNAUTHORIZED);
-    }
-
-    @Test
-    void 유효한_토큰의_subject를_신원_헤더로_다운스트림에_전달한다() {
-        String valid = rs256Token(KID, KEY_PAIR, Instant.now().plusSeconds(3600));
-        MockServerWebExchange exchange = exchangeWith("Bearer " + valid);
-
-        filter.filter(exchange, chain).block();
-
-        assertThat(forwarded.get().getRequest().getHeaders().getFirst(AUTHENTICATED_USER_HEADER))
-                .isEqualTo("user-1");
-    }
-
-    @Test
-    void 클라이언트가_보낸_신원_헤더는_검증된_subject로_덮어쓴다() {
-        String valid = rs256Token(KID, KEY_PAIR, Instant.now().plusSeconds(3600));
-        MockServerHttpRequest request = MockServerHttpRequest.get("/orders")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + valid)
-                .header(AUTHENTICATED_USER_HEADER, "attacker-spoofed-user")
-                .build();
-        MockServerWebExchange exchange = MockServerWebExchange.from(request);
-
-        filter.filter(exchange, chain).block();
-
-        assertThat(forwarded.get().getRequest().getHeaders().get(AUTHENTICATED_USER_HEADER))
-                .containsExactly("user-1");
-    }
-
-    @Test
-    void 거부된_요청은_신원_헤더를_실어보내지_않는다() {
-        MockServerHttpRequest request = MockServerHttpRequest.get("/orders")
-                .header(AUTHENTICATED_USER_HEADER, "attacker-spoofed-user")
-                .build();
-        MockServerWebExchange exchange = MockServerWebExchange.from(request);
-
-        filter.filter(exchange, chain).block();
-
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        assertThat(chained).isFalse();
     }
 
     private static GatewayFilter buildFilter() {
