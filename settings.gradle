@@ -1,5 +1,6 @@
 rootProject.name = 'spring-cloud-msa'
 
+include 'apigateway'
 include 'service-discovery'
 include 'config-service'
 include 'user-service'
