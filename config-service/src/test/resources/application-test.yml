@@ -1,3 +1,10 @@
 config:
   repository:
     path: ${user.dir}/src/test/resources/config-repo
+  encrypt:
+    keystore-path: ${user.dir}/../keystore/config-encrypt-dev.jks
+
+spring:
+  cloud:
+    bus:
+      enabled: false
