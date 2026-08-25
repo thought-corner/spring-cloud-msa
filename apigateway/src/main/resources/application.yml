@@ -1,0 +1,63 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: apigateway
+  config:
+    import: "optional:configserver:${CONFIG_SERVICE_URI:http://127.0.0.1:8888}"
+  cloud:
+    config:
+      fail-fast: true
+      username: ${CONFIG_SERVICE_USERNAME:config}
+      password: ${CONFIG_SERVICE_PASSWORD:config1234}
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: user-login
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/login
+                - Method=POST
+            - id: user-signup
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/users
+                - Method=POST
+            - id: user-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/users/**
+              filters:
+                - AuthorizationHeaderFilter
+            - id: order-service
+              uri: lb://ORDER-SERVICE
+              predicates:
+                - Path=/orders/**
+              filters:
+                - AuthorizationHeaderFilter
+            - id: product-service
+              uri: lb://PRODUCT-SERVICE
+              predicates:
+                - Path=/products/**
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+
+eureka:
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:127.0.0.1}
+    instance-id: ${spring.application.name}:${server.port}
+  client:
+    refresh:
+      enable: false
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVICE_URL:http://127.0.0.1:8761/eureka}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
